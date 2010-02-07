@@ -1,0 +1,25 @@
+Name: Renamer
+Version: 0.1
+License: GPL
+License-File: LICENSE
+
+Cabal-Version: >= 1.2
+
+Copyright: Tamas Eppel <Tamas.Eppel@gmail.com>
+Maintainer: Tamas Eppel <Tamas.Eppel@gmail.com>
+
+Category: Utility
+
+Build-Type: Simple
+Build-Depends: base >= 2,
+               parsec >= 2,
+               containers >= 0.2,
+               unix >= 2.3,
+               filepath >= 1.1,
+               directory >= 1,
+               haskell98
+
+Executable: renamer
+Main-Is: RenCli.hs
+
+Description: A tool for renaming files and directories based on patterns.
