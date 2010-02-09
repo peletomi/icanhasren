@@ -133,5 +133,9 @@ renameFile opts renResult = do
 
 applyToFiles :: RenameActionContext -> [RenameResult] -> IO ()
 applyToFiles context renResult = do 
+
+                                   when ((not . optForce $ getopts context) && isAnyForceError renResult)
+                                        (hPutStrLn stderr "existing files detected" >> exitFailure)
+
                                    mapM (exec context (getopts context)) renResult
                                    return ()
