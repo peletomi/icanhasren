@@ -137,5 +137,10 @@ applyToFiles context renResult = do
                                    when ((not . optForce $ getopts context) && isAnyForceError renResult)
                                         (hPutStrLn stderr "existing files detected" >> exitFailure)
 
-                                   mapM (exec context (getopts context)) renResult
+                                   let action' = exec context (getopts context)
+                                       action  = case hLog context of
+                                                      Nothing -> action'
+                                                      Just h  -> (\r -> writeLine h r >> action' r)
+
+                                   mapM action renResult
                                    return ()
