@@ -21,7 +21,8 @@ along with Renamer.  If not, see <http://www.gnu.org/licenses/>.
 
 module Rename (
     CheckError,
-    isAnyCheckError,
+    isAnyFatalError,
+    isAnyForceError,
     RenameResult,
     isDirectory,
     oldName,
@@ -265,9 +266,13 @@ isCheckError :: CheckError -> RenameResult -> Bool
 isCheckError ce rr = foldr step False (errors rr)
                        where step e acc = acc || (e == ce)
 
-isAnyCheckError :: [RenameResult] -> Bool
-isAnyCheckError rr = foldr step False rr
-                        where step r acc = acc || (not . null $ errors r)
+isAnyFatalError :: [RenameResult] -> Bool
+isAnyFatalError rr = foldr step False rr
+                        where step r acc = acc || (any (==NewNameCollision) $ errors r)
+
+isAnyForceError :: [RenameResult] -> Bool
+isAnyForceError rr = foldr step False rr
+                        where step r acc = acc || (any (==Existing) $ errors r)
 
 ---------------- Sort Results ----------------------
   
