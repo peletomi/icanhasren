@@ -134,8 +134,13 @@ renameFile opts renResult = do
 applyToFiles :: RenameActionContext -> [RenameResult] -> IO ()
 applyToFiles context renResult = do 
 
-                                   when ((not . optForce $ getopts context) && isAnyForceError renResult)
+                                   let doRename = not . optShowOnly $ getopts context
+
+                                   when (doRename && (not . optForce $ getopts context) && isAnyForceError renResult)
                                         (hPutStrLn stderr "existing files detected" >> exitFailure)
+
+                                   when (doRename && isAnyFatalError renResult)
+                                        (hPutStrLn stderr "given pattern results in less files" >> exitFailure)
 
                                    let action' = exec context (getopts context)
                                        action  = case hLog context of
