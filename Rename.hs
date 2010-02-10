@@ -51,6 +51,7 @@ import Text.Printf
 import Data.Char
 import Data.Maybe (fromMaybe, fromJust)
 import Data.List (partition)
+import Data.Function (on)
 
 import Control.Monad (forM)
 
@@ -85,14 +86,14 @@ instance Show RenameResult where
 
 instance Eq RenameResult where
     (==) a b = oldName a == oldName b && newName a == newName b
-    (/=) a b = not $ a == b
+    (/=) a b = a /= b
 
 instance Ord RenameResult where
     compare a b = oldName a `compare` oldName b
-    (<)  a b = oldName a <  oldName b
-    (>=) a b = oldName a >= oldName b
-    (>)  a b = oldName a >  oldName b
-    (<=) a b = oldName a <= oldName b
+    (<)  = (<)  `on` oldName
+    (>=) = (>=) `on` oldName
+    (>)  = (>)  `on` oldName
+    (<=) = (<=) `on` oldName
     max  a b = if a >= b then a else b
     min  a b = if a <= b then a else b
 
@@ -108,9 +109,9 @@ class Counter a where
     format :: String -> a -> String
 
 instance Counter String where
-   init     = id
-   next     = nextLetterNum
-   format f = applyCase (getCase f)
+   init   = id
+   next   = nextLetterNum
+   format = applyCase . getCase
                 
 instance Counter Int where
     init i     = read i :: Int
@@ -234,7 +235,7 @@ literalPar = do
 ---------------- Renaming ----------------------
 
 collisions :: [RenameResult] -> [String]
-collisions ls = S.toList ((toSet oldName) `S.intersection` (toSet newName))
+collisions ls = S.toList (toSet oldName `S.intersection` toSet newName)
                 where toSet f = S.fromList . map f $ ls -- puts the names in a RenameResult into a set, f retrieves the name
 
 getRenamer pattern = case parse parsePattern "name" pattern of
@@ -254,9 +255,7 @@ renameFilePath pattern (i:is) = getNames $ ren [(i, renamer . toRenContext $ i)]
                                       getNames = map (\(rn, rrc) -> (toRenameResult rn (directory rrc `combine` result rrc)))
 
 rename :: String -> [String] -> IO [RenameResult]
-rename p files= do 
-                  chrr <- checkResult (renameFilePath p files)
-                  sortResults chrr
+rename p files= checkResult (renameFilePath p files) >>= sortResults
 
 ---------------- Checking ----------------------
 
@@ -273,7 +272,7 @@ checkOldCollision :: Checker
 checkOldCollision rr curr = do
                               let name      = newName curr
                               let rrSans    = S.delete curr $ S.fromList rr
-                              let oldNames  = map (oldName) $ S.toList rrSans
+                              let oldNames  = map oldName $ S.toList rrSans
                               let isColliding = not . null . filter (==name) $ oldNames
                               return (if isColliding then OldNameCollision else NoError)
 
@@ -281,7 +280,7 @@ checkNewCollision :: Checker
 checkNewCollision rr curr = do
                               let name        = newName curr
                               let rrSans      = S.delete curr $ S.fromList rr
-                              let newNames    = map (newName) $ S.toList rrSans
+                              let newNames    = map newName $ S.toList rrSans
                               let isColliding = not . null . filter (==name) $ newNames
                               return (if isColliding then NewNameCollision else NoError)
 
@@ -299,11 +298,11 @@ isCheckError ce rr = foldr step False (errors rr)
 
 isAnyFatalError :: [RenameResult] -> Bool
 isAnyFatalError rr = foldr step False rr
-                        where step r acc = acc || (any (==NewNameCollision) $ errors r)
+                        where step r acc = acc || any (==NewNameCollision) (errors r)
 
 isAnyForceError :: [RenameResult] -> Bool
 isAnyForceError rr = foldr step False rr
-                        where step r acc = acc || (any (==Existing) $ errors r)
+                        where step r acc = acc || any (==Existing) (errors r)
 
 ---------------- Sort Results ----------------------
   
@@ -352,7 +351,7 @@ createTempName p = do
 isOk :: RenameResult -> [RenameResult] -> Bool
 isOk r ok = noOldCollision || inOk
            where noOldCollision = not . isCheckError OldNameCollision $ r
-                 inOk = newName r `elem` (map oldName ok) -- the new name should be in the ok (oldName) list
+                 inOk = newName r `elem` map oldName ok -- the new name should be in the ok (oldName) list
 
 toRenameResult :: FilePath -> FilePath -> RenameResult
 toRenameResult on nn = RenameResult { oldName = on, newName = nn, errors  = [] }
@@ -368,7 +367,7 @@ isDirectory name = do
 loadFile :: FilePath -> Bool -> IO [RenameResult]
 loadFile file isUndo = do
                          hIn <- openFile file ReadMode
-                         let convFunc = if isUndo then (flip toRenameResult) else toRenameResult
+                         let convFunc = if isUndo then flip toRenameResult else toRenameResult
                          result <- resultsFromLines hIn convFunc []
                          hClose hIn
                          return result
@@ -379,7 +378,7 @@ resultsFromLines hIn convFunc r = do
                                     if eof
                                       then return r
                                       else do l <- hGetLine hIn
-                                              resultsFromLines hIn convFunc ((lineToRes l) : r)
+                                              resultsFromLines hIn convFunc (lineToRes l : r)
                                               where lineToRes l = convFunc on nn
                                                                 where (on, nn') = break (==':') l
                                                                       nn        = if null nn' then "" else tail nn'

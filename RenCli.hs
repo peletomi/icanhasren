@@ -60,12 +60,12 @@ defaultOptions = Options { optShowOnly   = False
 
 options :: [OptDescr (Options -> IO Options)]
 options =
-    [ Option ['h']  ["help"]        (NoArg  showHelp)    "usage information"
-    , Option ['s']  ["show-only"]   (NoArg  (\    opt -> return opt { optShowOnly = True })) "only show renames"
-    , Option ['l']  ["log"]         (ReqArg (\arg opt -> return opt { optLog = arg }) "FILE")  "log rename actions to file"
-    , Option ['i']  ["input"]       (ReqArg (\arg opt -> return opt { optLoadMethod = Load, optLoad = arg }) "FILE") "load renames from file"
-    , Option ['u']  ["undo"]        (ReqArg (\arg opt -> return opt { optLoadMethod = Undo, optUndo = arg }) "FILE") "undo renames from file"
-    , Option ['f']  ["force"]       (NoArg  (\    opt -> return opt { optForce = True })) "force renaming"
+    [ Option "h"  ["help"]        (NoArg  showHelp)    "usage information"
+    , Option "s"  ["show-only"]   (NoArg  (\    opt -> return opt { optShowOnly = True })) "only show renames"
+    , Option "l"  ["log"]         (ReqArg (\arg opt -> return opt { optLog = arg }) "FILE")  "log rename actions to file"
+    , Option "i"  ["input"]       (ReqArg (\arg opt -> return opt { optLoadMethod = Load, optLoad = arg }) "FILE") "load renames from file"
+    , Option "u"  ["undo"]        (ReqArg (\arg opt -> return opt { optLoadMethod = Undo, optUndo = arg }) "FILE") "undo renames from file"
+    , Option "f"  ["force"]       (NoArg  (\    opt -> return opt { optForce = True })) "force renaming"
     ]
 
 showHelp :: Options -> IO Options
@@ -109,7 +109,7 @@ main = do
 type RenameAction = Options -> RenameResult -> IO ()
 
 buildShowAction, buildRenameAction :: Options -> Maybe Handle -> RenameActionContext
-buildShowAction o h   = RenameActionContext o h (\_ r -> putStrLn $ show r)
+buildShowAction o h   = RenameActionContext o h (const print)
 buildRenameAction o h = RenameActionContext o h renameFile
 
 handleArgumments :: [String] -> IO [RenameResult]
@@ -123,7 +123,7 @@ renameFile opts renResult = do
                               df <- D.doesFileExist nn
                               dd <- D.doesDirectoryExist nn
 
-                              when ((df || dd) && (not $ optForce opts))
+                              when ((df || dd) && not (optForce opts))
                                    (hPutStrLn stderr ("file [" ++ nn ++ "] already exists") >> exitFailure)
                                  
                               isDir <- isDirectory on
@@ -147,5 +147,4 @@ applyToFiles context renResult = do
                                                       Nothing -> action'
                                                       Just h  -> (\r -> writeLine h r >> action' r)
 
-                                   mapM action renResult
-                                   return ()
+                                   mapM_ action renResult
