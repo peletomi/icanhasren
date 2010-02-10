@@ -121,6 +121,18 @@ applyCase FirstUpper (c:cs) = toUpper c : map toLower cs
 applyCase UpperCase  c  = map toUpper c
 applyCase LowerCase  c  = map toLower c
 
+nextLetter :: Char -> Char
+nextLetter c | c == 'z'  = 'a'
+             | otherwise = chr (ord c + 1)
+
+nextLetterNum :: String -> String
+nextLetterNum [] = "a"
+nextLetterNum ls = if overflow then 'a':r else r
+                   where (overflow, r)  = foldl step (True, "") (reverse ls)
+                         step (o,acc) l = (o', l':acc)
+                            where l' = if o then nextLetter l else l
+                                  o' = l == 'z' && l' == 'a'
+
 literalBuilder :: String -> Renamer
 literalBuilder val c =  modifyResult c (result c ++ val)
 
