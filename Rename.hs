@@ -19,6 +19,8 @@ along with Renamer.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Rename (
     CheckError,
     isAnyFatalError,
@@ -99,6 +101,23 @@ type Renamer = RenContext -> RenContext
 type Pattern = String
 
 type RenBuilder = Pattern -> Renamer
+
+class Counter a where
+    init   :: String -> a
+    next   :: a -> a
+    format :: String -> a -> String
+
+instance Counter String where
+   init     = id
+   next     = nextLetterNum
+   format f = applyCase (getCase f)
+                
+instance Counter Int where
+    init i     = read i :: Int
+    next n     = n + 1
+    format f n = replicate time '0' ++ sv
+                       where sv = show n :: String
+                             time = length f- length sv 
 
 toRenContext :: String -> RenContext
 toRenContext n = RenContext dir fname name (dropWhile (=='.') ext) Nothing ""
