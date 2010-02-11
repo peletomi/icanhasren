@@ -68,7 +68,7 @@ data RenContext = RenContext {
 ,   fileName  :: FilePath
 ,   name      :: String
 ,   ext       :: String
-,   counter   :: Maybe Int
+,   counter   :: Maybe String
 ,   result    :: String
 } deriving (Show)
 
@@ -128,6 +128,9 @@ toRenContext n = RenContext dir fname name (dropWhile (=='.') ext) Nothing ""
 modifyResult :: RenContext -> String -> RenContext
 modifyResult rc val = rc { result = val }
 
+modifyResultAndCount :: RenContext -> String -> Maybe String -> RenContext
+modifyResultAndCount rc val count = rc { result = val, counter = count }
+
 getCase :: String -> Case
 getCase (a:b:ls) | isUpper a && isUpper b = UpperCase
                  | isUpper a && isLower b = FirstUpper
@@ -157,14 +160,24 @@ literalBuilder :: String -> Renamer
 literalBuilder val c =  modifyResult c (result c ++ val)
 
 counterBuilder :: String -> Int -> Renamer
-counterBuilder format diff c = modifyResult c (result c ++ applyFormat format newCount) newCount
-                               where newCount = case counter c of
-                                                   Nothing -> Just (read format :: Int)
-                                                   Just a  -> Just (a + diff)
-                                     modifyResult rc val count = rc { result = val, counter = count }
-                                     applyFormat f v = replicate time '0' ++ sv
-                                         where sv = show . fromJust $ v :: String
-                                               time = length format - length sv 
+counterBuilder format = if all isDigit format then intCounterBuilder format else stringCounterBuilder format
+
+stringCounterBuilder :: String -> Int -> Renamer
+stringCounterBuilder format diff c = modifyResultAndCount c (result c ++ applyFormat format newCount) newCount
+                                       where newCount = case counter c of
+                                                           Nothing -> Just format
+                                                           Just a  -> Just (foldl (\a f -> f a) a $ replicate diff nextLetterNum)
+                                             applyFormat f v = applyCase (getCase f) (fromJust v)
+
+intCounterBuilder :: String -> Int -> Renamer
+intCounterBuilder format diff c =  modifyResultAndCount c (result c ++ applyFormat format newCount) newCount
+                                     where countVal = case counter c of
+                                                         Nothing -> read format :: Int
+                                                         Just a  -> read a + diff
+                                           newCount = Just (show countVal)
+                                           applyFormat f v = replicate time '0' ++ sv
+                                                where sv   = fromJust v :: String
+                                                      time = length format - length sv 
 
 stringFieldBuilder :: (RenContext -> String) -> Case -> Renamer
 stringFieldBuilder accessor casing c = modifyResult c (result c ++ applyCase casing (accessor c))
@@ -204,16 +217,19 @@ cbuilder m = counterBuilder f d
 coDataFormatPar :: GenParser Char st (String, Int)
 coDataFormatPar = do
                     char ':'
-                    f <- many1 digit
+                    f <- counterFormatPar
                     return (f, 1)
 
 coDataPar :: GenParser Char st (String, Int)
 coDataPar = do
               char ':'
-              f <- many1 digit
+              f <- counterFormatPar
               char ','
               d <- many1 digit
               return (f, read d :: Int)
+
+counterFormatPar :: GenParser Char st String
+counterFormatPar = many1 digit <|> many1 (oneOf (['a'..'z']++['A'..'Z']))
 
 namePar, extPar, fileNamePar :: GenParser Char st Renamer
 namePar     = simpleParBuilder 'N' nameBuilder
