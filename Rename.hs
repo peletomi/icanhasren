@@ -187,6 +187,21 @@ nameBuilder     = stringFieldBuilder name
 extBuilder      = stringFieldBuilder ext
 fileNameBuilder = stringFieldBuilder fileName
 
+extractStartBuilder :: (RenContext -> String) -> Case -> Int -> Renamer
+extractStartBuilder accessor casing start c = modifyResult c (result c ++ applyCase casing val)
+                                                where v   = accessor c
+                                                      l   = length v
+                                                      s   = if start < 0 then l+start else start - 1 -- reset start if out of bounds
+                                                      val = substringFrom s v
+
+substring :: Int -> Int -> [a] -> [a]
+substring _ _ [] = []
+substring s e ls = drop s . take e $ ls
+
+substringFrom :: Int -> [a] -> [a]
+substringFrom _ [] = []
+substringFrom s ls = drop s ls
+
 ---------------- Pattern Processing ----------------------
 
 parsePattern :: GenParser Char st Renamer
@@ -199,8 +214,29 @@ usedPat = try namePar     <|>
           try extPar      <|>
           try fileNamePar <|>
           try counterPar  <|>
+          try extractPar  <|>
           try literalPar  <?>
           "unknown pattern"
+
+posIntPar :: GenParser Char st Int
+posIntPar = do
+              s <- many1 digit
+              return (read s)
+
+intPar :: GenParser Char st Int
+intPar = do
+           n <- option ' ' (char '-')
+           s <- many1 digit
+           return (read (n:s))
+
+extractPar :: GenParser Char st Renamer
+extractPar = do
+               char '['
+               nc <- many1 (char 'X' <|> char 'x')
+               char ':'
+               s  <- intPar
+               char ']'
+               return (extractStartBuilder fileName (getCase nc) s)
 
 counterPar :: GenParser Char st Renamer
 counterPar = do  
@@ -225,8 +261,8 @@ coDataPar = do
               char ':'
               f <- counterFormatPar
               char ','
-              d <- many1 digit
-              return (f, read d :: Int)
+              d <- posIntPar
+              return (f, d :: Int)
 
 counterFormatPar :: GenParser Char st String
 counterFormatPar = many1 digit <|> many1 (oneOf (['a'..'z']++['A'..'Z']))

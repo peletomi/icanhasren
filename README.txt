@@ -40,6 +40,14 @@ The following patterns are available:
                                       describe the difference between two
                                       counts
 
+  * [X]
+
+  * [X:1]
+
+  * [X:1,12]
+
+  * [X:1,-1,e] e f n
+
 Collisions
 ----------
 

@@ -34,25 +34,33 @@ createFileName ns es = zipWith (\n e -> n++"."++(take 3 e)) ns es
 toUpperFirst [] = []
 toUpperFirst (n:ns) = toUpper n : map toLower ns
 
+createNewNames pattern ns = reverse . map newName $ renamed
+                            where names    = createFileName ns (reverse ns)
+                                  renamed  = renameFilePath pattern names
+
 prop_renamesize xs = length renamed == length xs
                      where renamed = renameFilePath "[N]" xs
 
-prop_fileNamePat ns = ns == newNames
-                      where names    = createFileName ns ns
-                            renamed  = renameFilePath "[N]" names
-                            newNames = reverse . map newName $ renamed
+prop_fileNamePat ns             = ns == createNewNames "[N]" ns
+prop_fileNameToUpperPat ns      = (map (map toUpper) ns) == createNewNames "[NN]" ns
+prop_fileNameToLowerPat ns      = (map (map toLower) ns) == createNewNames "[nn]" ns
+prop_fileNameToUpperFirstPat ns = (map toUpperFirst ns) == createNewNames "[Nn]" ns
 
-prop_fileNameToUpperPat ns = (map (map toUpper) ns) == newNames
-                             where names    = createFileName ns ns
-                                   renamed  = renameFilePath "[NN]" names
-                                   newNames = reverse . map newName $ renamed
+prop_extractToEnd ns    = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3]" ns  -- take from the third
+prop_extractFromEnd ns  = map (reverse . take 3 . reverse) (createFileName ns (reverse ns)) == createNewNames "[X:-3]" ns -- take from the third from the end
+prop_extractAll ns      = createFileName ns (reverse ns) == createNewNames "[X:1]" ns                 -- take from the beginning
+prop_extractTwoFrom ns  = map (drop 1 . take 3) ns == createNewNames "[X:2,2]" ns           -- take from the second two characters
+prop_extractTwoBack ns  = map (drop 0 . take 2) ns == createNewNames "[X:2,-2]" ns          -- take from the second two backwards
+prop_extractOverLen ns  = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3,50]" ns -- take from the third until the end (or max 50)
+prop_extractName ns     = map (take 3) ns == createNewNames "[X:1,3,n]" ns                 -- take from the name three characters
+prop_extractExt ns      = map (take 2) ns == createNewNames "[X:1,e]" ns                   -- return the extension
+prop_extractFromBack ns = map (reverse . drop 1 . take 3 . reverse) ns == createNewNames "[X:-3,2,n]"  ns -- take two from the third from the end of the name
+prop_extractBackBack ns = map (reverse . drop 2 . take 4 . reverse) ns == createNewNames "[X:-3,-2,n]" ns -- take two backwards from the third from the end of the name
+prop_extractNameName ns = createNewNames "[N]"  ns == createNewNames "[X:1,n]" ns
+prop_extractNameUp ns   = createNewNames "[NN]" ns == createNewNames "[XX:1,n]" ns
+prop_extractNameUpFi ns = createNewNames "[Nn]" ns == createNewNames "[Xn:1,n]" ns
+prop_extractExtExt ns   = createNewNames "[E]"  ns == createNewNames "[X:1,e]" ns
+prop_extractExtUp ns    = createNewNames "[EE]" ns == createNewNames "[XX:1,e]" ns
+prop_extractExtUpFi ns  = createNewNames "[Ee]" ns == createNewNames "[Xx:1,e]" ns
 
-prop_fileNameToLowerPat ns = (map (map toLower) ns) == newNames
-                             where names    = createFileName ns ns
-                                   renamed  = renameFilePath "[nn]" names
-                                   newNames = reverse . map newName $ renamed
-
-prop_fileNameToUpperFirstPat ns = (map toUpperFirst ns) == newNames
-                                  where names    = createFileName ns ns
-                                        renamed  = renameFilePath "[Nn]" names
-                                        newNames = reverse . map newName $ renamed
+-- substring substringFrom
