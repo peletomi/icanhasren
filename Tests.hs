@@ -29,7 +29,7 @@ instance Arbitrary Char where
    arbitrary     = elements(['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ " _-\\()[]")
    coarbitrary c = variant (ord c `rem` 4)
 
-createFileName ns es = zipWith (\n e -> n++"."++(take 3 e)) ns es
+createFileName ns es = zipWith (\n e -> (take 200 n)++"."++(take 3 e)) ns es
 
 toUpperFirst [] = []
 toUpperFirst (n:ns) = toUpper n : map toLower ns
@@ -51,7 +51,7 @@ prop_extractFromEnd ns  = map (reverse . take 3 . reverse) (createFileName ns (r
 prop_extractAll ns      = createFileName ns (reverse ns) == createNewNames "[X:1]" ns                 -- take from the beginning
 prop_extractTwoFrom ns  = map (drop 1 . take 3) ns == createNewNames "[Xn:2,2]" ns           -- take from the second two characters
 prop_extractTwoBack ns  = map (drop 0 . take 2) ns == createNewNames "[Xn:2,-2]" ns          -- take from the second two backwards
-prop_extractOverLen ns  = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3,50]" ns -- take from the third until the end (or max 50)
+prop_extractOverLen ns  = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3,250]" ns -- take from the third until the end (or max 50)
 prop_extractName ns     = map (take 3) ns == createNewNames "[Xn:1,3]" ns                 -- take from the name three characters
 prop_extractFromBack ns = map (reverse . drop 1 . take 3 . reverse) ns == createNewNames "[Xn:-3,2]"  ns -- take two from the third from the end of the name
 prop_extractBackBack ns = map (reverse . drop 2 . take 4 . reverse) ns == createNewNames "[Xn:-3,-2]" ns -- take two backwards from the third from the end of the name

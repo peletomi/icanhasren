@@ -39,7 +39,7 @@ main = do
         , run prop_extractAll
         , run prop_extractTwoFrom 
         , run prop_extractTwoBack 
-        , run prop_extractOverLen  -- FAILING
+        , run prop_extractOverLen
         , run prop_extractName
         , run prop_extractFromBack
         , run prop_extractBackBack -- FAILING
