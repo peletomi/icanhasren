@@ -199,11 +199,12 @@ extractBuilder :: (RenContext -> String) -> Case -> Int -> Maybe Int -> Renamer
 extractBuilder accessor casing start end c = modifyResult c (result c ++ applyCase casing val)
                                               where v   = accessor c
                                                     l   = length v
-                                                    s   = if start < 0 then l+start else start-1 -- reset start if out of bounds
-                                                    (swap,e) = case end of
-                                                                    Nothing -> (False,l)
-                                                                    Just n  -> if n > 0 then (False,s+n) else (True,s+n)
-                                                    val = if swap then substring e (s+1) v else substring s e v
+                                                    (s,e) = case end of
+                                                                 Nothing   -> if start < 0 then (l+start,l) else (start-1,l)
+                                                                 Just end  -> if end > 0
+                                                                                 then if start < 0 then (l+start,l+start+end) else (start-1,start-1+end)
+                                                                                 else if start < 0 then (l+start+1+end,l+start+1) else (start+end,start)
+                                                    val = substring s e v
 
 substring :: Int -> Int -> [a] -> [a]
 substring _ _ [] = []
