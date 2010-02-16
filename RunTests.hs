@@ -37,12 +37,12 @@ main = do
         , run prop_extractToEnd
         , run prop_extractFromEnd
         , run prop_extractAll
-        --, run prop_extractTwoFrom 
-        --, run prop_extractTwoBack 
-        --, run prop_extractOverLen 
+        , run prop_extractTwoFrom 
+        , run prop_extractTwoBack 
+        , run prop_extractOverLen  -- FAILING
         , run prop_extractName
-        --, run prop_extractFromBack
-        --, run prop_extractBackBack
+        , run prop_extractFromBack
+        , run prop_extractBackBack -- FAILING
         , run prop_extractNameName
         , run prop_extractNameUp
         , run prop_extractNameUpFi

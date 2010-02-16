@@ -49,8 +49,8 @@ prop_fileNameToUpperFirstPat ns = (map toUpperFirst ns) == createNewNames "[Nn]"
 prop_extractToEnd ns    = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3]" ns  -- take from the third
 prop_extractFromEnd ns  = map (reverse . take 3 . reverse) (createFileName ns (reverse ns)) == createNewNames "[X:-3]" ns -- take from the third from the end
 prop_extractAll ns      = createFileName ns (reverse ns) == createNewNames "[X:1]" ns                 -- take from the beginning
-prop_extractTwoFrom ns  = map (drop 1 . take 3) ns == createNewNames "[X:2,2]" ns           -- take from the second two characters
-prop_extractTwoBack ns  = map (drop 0 . take 2) ns == createNewNames "[X:2,-2]" ns          -- take from the second two backwards
+prop_extractTwoFrom ns  = map (drop 1 . take 3) ns == createNewNames "[Xn:2,2]" ns           -- take from the second two characters
+prop_extractTwoBack ns  = map (drop 0 . take 2) ns == createNewNames "[Xn:2,-2]" ns          -- take from the second two backwards
 prop_extractOverLen ns  = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3,50]" ns -- take from the third until the end (or max 50)
 prop_extractName ns     = map (take 3) ns == createNewNames "[Xn:1,3]" ns                 -- take from the name three characters
 prop_extractFromBack ns = map (reverse . drop 1 . take 3 . reverse) ns == createNewNames "[Xn:-3,2]"  ns -- take two from the third from the end of the name

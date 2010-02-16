@@ -195,12 +195,15 @@ nameBuilder     = stringFieldBuilder name
 extBuilder      = stringFieldBuilder ext
 fileNameBuilder = stringFieldBuilder fileName
 
-extractStartBuilder :: (RenContext -> String) -> Case -> Int -> Renamer
-extractStartBuilder accessor casing start c = modifyResult c (result c ++ applyCase casing val)
-                                                where v   = accessor c
-                                                      l   = length v
-                                                      s   = if start < 0 then l+start else start - 1 -- reset start if out of bounds
-                                                      val = substringFrom s v
+extractBuilder :: (RenContext -> String) -> Case -> Int -> Maybe Int -> Renamer
+extractBuilder accessor casing start end c = modifyResult c (result c ++ applyCase casing val)
+                                              where v   = accessor c
+                                                    l   = length v
+                                                    s   = if start < 0 then l+start else start-1 -- reset start if out of bounds
+                                                    (swap,e) = case end of
+                                                                    Nothing -> (False,l)
+                                                                    Just n  -> if n > 0 then (False,s+n) else (True,s+n)
+                                                    val = if swap then substring e (s+1) v else substring s e v
 
 substring :: Int -> Int -> [a] -> [a]
 substring _ _ [] = []
@@ -244,8 +247,12 @@ extractPar = do
                ac <- option "" (many1 (oneOf "NnEeFf"))
                char ':'
                s  <- intPar
+               l  <- optionMaybe extractLengthPar
                char ']'
-               return (extractStartBuilder (getStringAccessor ac) (getCase nc) s)
+               return (extractBuilder (getStringAccessor ac) (getCase nc) s l) 
+
+extractLengthPar :: GenParser Char st Int
+extractLengthPar = char ',' >> intPar
 
 counterPar :: GenParser Char st Renamer
 counterPar = do  
