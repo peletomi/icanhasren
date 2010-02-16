@@ -52,15 +52,14 @@ prop_extractAll ns      = createFileName ns (reverse ns) == createNewNames "[X:1
 prop_extractTwoFrom ns  = map (drop 1 . take 3) ns == createNewNames "[X:2,2]" ns           -- take from the second two characters
 prop_extractTwoBack ns  = map (drop 0 . take 2) ns == createNewNames "[X:2,-2]" ns          -- take from the second two backwards
 prop_extractOverLen ns  = map (drop 2) (createFileName ns (reverse ns)) == createNewNames "[X:3,50]" ns -- take from the third until the end (or max 50)
-prop_extractName ns     = map (take 3) ns == createNewNames "[X:1,3,n]" ns                 -- take from the name three characters
-prop_extractExt ns      = map (take 2) ns == createNewNames "[X:1,e]" ns                   -- return the extension
-prop_extractFromBack ns = map (reverse . drop 1 . take 3 . reverse) ns == createNewNames "[X:-3,2,n]"  ns -- take two from the third from the end of the name
-prop_extractBackBack ns = map (reverse . drop 2 . take 4 . reverse) ns == createNewNames "[X:-3,-2,n]" ns -- take two backwards from the third from the end of the name
-prop_extractNameName ns = createNewNames "[N]"  ns == createNewNames "[X:1,n]" ns
-prop_extractNameUp ns   = createNewNames "[NN]" ns == createNewNames "[XX:1,n]" ns
-prop_extractNameUpFi ns = createNewNames "[Nn]" ns == createNewNames "[Xn:1,n]" ns
-prop_extractExtExt ns   = createNewNames "[E]"  ns == createNewNames "[X:1,e]" ns
-prop_extractExtUp ns    = createNewNames "[EE]" ns == createNewNames "[XX:1,e]" ns
-prop_extractExtUpFi ns  = createNewNames "[Ee]" ns == createNewNames "[Xx:1,e]" ns
+prop_extractName ns     = map (take 3) ns == createNewNames "[Xn:1,3]" ns                 -- take from the name three characters
+prop_extractFromBack ns = map (reverse . drop 1 . take 3 . reverse) ns == createNewNames "[Xn:-3,2]"  ns -- take two from the third from the end of the name
+prop_extractBackBack ns = map (reverse . drop 2 . take 4 . reverse) ns == createNewNames "[Xn:-3,-2]" ns -- take two backwards from the third from the end of the name
+prop_extractNameName ns = createNewNames "[N]"  ns == createNewNames "[Xn:1]" ns
+prop_extractNameUp ns   = createNewNames "[NN]" ns == createNewNames "[XXn:1]" ns
+prop_extractNameUpFi ns = createNewNames "[Nn]" ns == createNewNames "[Xxn:1]" ns
+prop_extractExtExt ns   = createNewNames "[E]"  ns == createNewNames "[Xe:1]" ns
+prop_extractExtUp ns    = createNewNames "[EE]" ns == createNewNames "[XXe:1]" ns
+prop_extractExtUpFi ns  = createNewNames "[Ee]" ns == createNewNames "[Xxe:1]" ns
 
 -- substring substringFrom

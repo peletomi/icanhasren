@@ -41,7 +41,6 @@ main = do
         --, run prop_extractTwoBack 
         --, run prop_extractOverLen 
         , run prop_extractName
-        , run prop_extractExt
         --, run prop_extractFromBack
         --, run prop_extractBackBack
         , run prop_extractNameName

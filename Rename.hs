@@ -144,6 +144,14 @@ applyCase FirstUpper (c:cs) = toUpper c : map toLower cs
 applyCase UpperCase  c  = map toUpper c
 applyCase LowerCase  c  = map toLower c
 
+getStringAccessor :: String -> (RenContext -> String)
+getStringAccessor [] = fileName
+getStringAccessor ls | all (=='n') ls' = name
+                     | all (=='f') ls' = fileName
+                     | all (=='e') ls' = ext
+                     | otherwise = fileName
+                     where ls' = map toLower ls
+
 nextLetter :: Char -> Char
 nextLetter c | c == 'z'  = 'a'
              | otherwise = chr (ord c + 1)
@@ -233,10 +241,11 @@ extractPar :: GenParser Char st Renamer
 extractPar = do
                char '['
                nc <- many1 (char 'X' <|> char 'x')
+               ac <- option "" (many1 (oneOf "NnEeFf"))
                char ':'
                s  <- intPar
                char ']'
-               return (extractStartBuilder fileName (getCase nc) s)
+               return (extractStartBuilder (getStringAccessor ac) (getCase nc) s)
 
 counterPar :: GenParser Char st Renamer
 counterPar = do  

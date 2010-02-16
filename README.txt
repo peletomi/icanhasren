@@ -8,9 +8,28 @@ surrounded by a pair of brackets i.e.: []. The patterns which handle string
 values support the change of case:
 
   * x  - unchanged
+
   * XX - upper case
+
   * Xx - first character upper case, others lower case
+
   * xx - lower case
+
+Some patterns support limiting the action to a particular part of the file
+name. In this cases the selector character is located after the pattern character.
+For example:
+
+  [Xe] - limits the extraction to the extension
+
+The pattern character always sets the casing, not the selector character.
+
+Selector characters are:
+
+  * f - whole file name
+
+  * n - name without extension
+
+  * e - extension
 
 The following patterns are available:
 
@@ -40,13 +59,27 @@ The following patterns are available:
                                       describe the difference between two
                                       counts
 
-  * [X]
+  * [X:start]   - string - returns the substring denoted by start. Start is a
+                           one based index. If start is negative, then the
+                           index is from the end of the string. If the start
+                           is past or before the string, then no or all
+                           characters will be returned.  The extractor pattern
+                           supports selector characters.
 
-  * [X:1]
+                  Examples: - [X:3] return the substring of the file name from
+                                    the third character
 
-  * [X:1,12]
+                            - [X:-2] return the substring from the second
+                                     character from the end of the string
 
-  * [X:1,-1,e] e f n
+                            - [Xxe:2] return the from the second character of
+                                      the extension, with the first letter
+                                      upper cased the others lower cased
+
+  * [X:start,length]    - string - returns the substring denoted by start with
+                                   the given length. If the length is
+                                   negative, then the substring before start
+                                   with the given length will be returned.
 
 Collisions
 ----------
