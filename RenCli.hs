@@ -45,6 +45,7 @@ data Options = Options  { optShowOnly   :: Bool
 
 data RenameActionContext = RenameActionContext
                            { getopts  :: Options
+                           , nonopts  :: [String]
                            , hLog     :: Maybe Handle
                            , exec     :: RenameAction
                            }
@@ -100,17 +101,17 @@ main = do
 
          -- do the RenameAction and always close the log if one is open
          finally (if optShowOnly opts 
-                     then applyToFiles (buildShowAction opts hLog) renResult
-                     else applyToFiles (buildRenameAction opts hLog) renResult)
+                     then applyToFiles (buildShowAction opts nonOpts hLog) renResult
+                     else applyToFiles (buildRenameAction opts nonOpts hLog) renResult)
                  (case hLog of
                      Nothing   -> return ()
                      Just h    -> hClose h)
 
 type RenameAction = Options -> RenameResult -> IO ()
 
-buildShowAction, buildRenameAction :: Options -> Maybe Handle -> RenameActionContext
-buildShowAction o h   = RenameActionContext o h (const print)
-buildRenameAction o h = RenameActionContext o h renameFile
+buildShowAction, buildRenameAction :: Options -> [String] -> Maybe Handle -> RenameActionContext
+buildShowAction o no h   = RenameActionContext o no h (const print)
+buildRenameAction o no h = RenameActionContext o no h renameFile
 
 handleArgumments :: [String] -> IO [RenameResult]
 handleArgumments (p:f:fs) = rename p (f:fs)
@@ -146,5 +147,9 @@ applyToFiles context renResult = do
                                        action  = case hLog context of
                                                       Nothing -> action'
                                                       Just h  -> (\r -> writeLine h r >> action' r)
+
+                                   case hLog context of
+                                        Nothing -> return ()
+                                        Just h  -> writeInfo h (nonopts context)
 
                                    mapM_ action renResult

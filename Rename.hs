@@ -22,6 +22,7 @@ along with Renamer.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Rename (
+    version,
     CheckError,
     isAnyFatalError,
     isAnyForceError,
@@ -33,7 +34,8 @@ module Rename (
     renameFilePath,
     rename,
     loadFile,
-    writeLine
+    writeLine,
+    writeInfo
 )
 where
 
@@ -50,12 +52,14 @@ import Text.Printf
 
 import Data.Char
 import Data.Maybe (fromMaybe, fromJust)
-import Data.List (partition)
+import Data.List (partition, isPrefixOf)
 import Data.Function (on)
 
 import Control.Monad (forM)
 
 import qualified Data.Set as S
+
+version = "0.1"
 
 data Case = NoChange | LowerCase | UpperCase | FirstUpper
             deriving (Eq, Show, Read, Enum)  
@@ -447,10 +451,19 @@ resultsFromLines hIn convFunc r = do
                                     if eof
                                       then return r
                                       else do l <- hGetLine hIn
-                                              resultsFromLines hIn convFunc (lineToRes l : r)
+                                              if isPrefixOf "#" l
+                                                  then resultsFromLines hIn convFunc r
+                                                  else resultsFromLines hIn convFunc (lineToRes l : r)
                                               where lineToRes l = convFunc on nn
                                                                 where (on, nn') = break (==':') l
                                                                       nn        = if null nn' then "" else tail nn'
+
+writeInfo :: Handle -> [String] -> IO ()
+writeInfo hOut (p:ps)  = writeVersion hOut >> hPutStrLn hOut ("# pattern: " ++ p)
+writeInfo hOut _       = writeVersion hOut
+
+writeVersion :: Handle -> IO ()
+writeVersion hOut = hPutStrLn hOut ("# v" ++ version)
 
 writeLine :: Handle -> RenameResult -> IO ()
 writeLine hOut r = hPutStrLn hOut (oldName r ++ ":" ++ newName r)
