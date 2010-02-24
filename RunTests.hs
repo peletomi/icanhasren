@@ -19,34 +19,39 @@ along with Renamer.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+import Test.Framework (defaultMain, testGroup)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
+
+import Test.QuickCheck
+
 import Tests
-import Test.QuickCheck.Batch
 
-options = TestOptions
-      { no_of_tests         = 200
-      , length_of_tests     = 1
-      , debug_tests         = False }
+main = defaultMain tests
 
-main = do
-    runTests "simple" options
-        [ run prop_renamesize
-        , run prop_fileNamePat
-        , run prop_fileNameToUpperPat
-        , run prop_fileNameToLowerPat
-        , run prop_fileNameToUpperFirstPat
-        , run prop_extractToEnd
-        , run prop_extractFromEnd
-        , run prop_extractAll
-        , run prop_extractTwoFrom 
-        , run prop_extractTwoBack 
-        , run prop_extractOverLen
-        , run prop_extractName
-        , run prop_extractFromBack
-        , run prop_extractBackBack
-        , run prop_extractNameName
-        , run prop_extractNameUp
-        , run prop_extractNameUpFi
-        , run prop_extractExtExt
-        , run prop_extractExtUp
-        , run prop_extractExtUpFi 
-        ]
+tests = [
+        testGroup "Patterns" 
+                [ testProperty "length of renamed list"             prop_renamesize
+                , testProperty "file name"                          prop_fileNamePat
+                , testProperty "file name to upper"                 prop_fileNameToUpperPat
+                , testProperty "file name to lower"                 prop_fileNameToLowerPat
+                , testProperty "file name first to upper"           prop_fileNameToUpperFirstPat
+                , testProperty "extract to end"                     prop_extractToEnd
+                , testProperty "extract from end"                   prop_extractFromEnd
+                , testProperty "extract all"                        prop_extractAll
+                , testProperty "extract two chars from index"       prop_extractTwoFrom 
+                , testProperty "extract two chars from back"        prop_extractTwoBack 
+                , testProperty "extracting over length"             prop_extractOverLen
+                , testProperty "extract name"                       prop_extractName
+                , testProperty "extracting backwards"               prop_extractFromBack
+                , testProperty "extract from back two back"         prop_extractBackBack
+                , testProperty "extract name"                       prop_extractNameName
+                , testProperty "extract name to upper"              prop_extractNameUp
+                , testProperty "extract name first to upper"        prop_extractNameUpFi
+                , testProperty "extract extension"                  prop_extractExtExt
+                , testProperty "extract extension to upper"         prop_extractExtUp
+                , testProperty "extract extension first to upper"   prop_extractExtUpFi 
+                ]
+         ]
+
+
+

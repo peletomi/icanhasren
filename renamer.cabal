@@ -9,17 +9,21 @@ Copyright: Tamas Eppel <Tamas.Eppel@gmail.com>
 Maintainer: Tamas Eppel <Tamas.Eppel@gmail.com>
 
 Category: Utility
+Description: A tool for renaming files and directories based on patterns.
 
 Build-Type: Simple
 Build-Depends: base >= 2,
                parsec >= 2,
                containers >= 0.2,
+               test-framework >= 0.2,
+               test-framework-quickcheck2 >= 0.2,
+               QuickCheck >= 2.1,
                unix >= 2.3,
                filepath >= 1.1,
                directory >= 1,
-               haskell98
+               haskell98,
+               HUnit >=1.2
 
 Executable: renamer
 Main-Is: RenCli.hs
 
-Description: A tool for renaming files and directories based on patterns.
