@@ -46,8 +46,9 @@ import System.FilePath
 import qualified System.Directory as D
 import qualified System.Posix.Files as PF
 
-import Text.Parsec
-import Text.Parsec.String
+import Text.ParserCombinators.Parsec.Combinator
+import Text.ParserCombinators.Parsec.Prim
+import Text.ParserCombinators.Parsec.Char
 import Text.Printf
 
 import Data.Char
