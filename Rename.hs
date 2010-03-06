@@ -455,7 +455,7 @@ resultsFromLines hIn convFunc r = do
                                               if isPrefixOf "#" l
                                                   then resultsFromLines hIn convFunc r
                                                   else resultsFromLines hIn convFunc (lineToRes l : r)
-                                              where lineToRes l = convFunc on nn
+                                              where lineToRes l = if null on || null nn then error "wrong file format" else convFunc on nn
                                                                 where (on, nn') = break (==':') l
                                                                       nn        = if null nn' then "" else tail nn'
 
