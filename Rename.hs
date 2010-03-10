@@ -125,10 +125,22 @@ instance Counter Int where
                        where sv = show n :: String
                              time = length f- length sv 
 
-toRenContext :: String -> RenContext
-toRenContext n = RenContext dir fname name (dropWhile (=='.') ext) Nothing ""
-                    where (name, ext)  = splitExtension . takeFileName $ n
-                          (dir, fname) = splitFileName n 
+-- Splits the FilePath into components: (directory, file name, name, extension).
+splitFilePath :: FilePath -> (String, String, String, String)
+splitFilePath f = (dir, fname, name, ext)
+                    where (name, ext')  = splitExtension . takeFileName $ f
+                          (dir, fname)  = splitFileName f
+                          ext = dropWhile (=='.') ext'
+
+-- Creates RenContext from a file, reading the properties of the file.
+fromFile :: FilePath -> IO RenContext
+fromFile f = return $ RenContext d f n e Nothing ""
+                    where (d, f, n, e) = splitFilePath n
+
+-- Creates RenContext from a string. Should be used for testing.
+fromString :: String -> RenContext
+fromString f = RenContext d f n e Nothing ""
+                    where (d, f, n, e) = splitFilePath f
 
 modifyResult :: RenContext -> String -> RenContext
 modifyResult rc val = rc { result = val }
@@ -318,12 +330,12 @@ getRenamer pattern = case parse parsePattern "name" pattern of
 
 renameFilePath :: String -> [String] -> [RenameResult]
 renameFilePath _       []     = []
-renameFilePath pattern (i:is) = getNames $ ren [(i, renamer . toRenContext $ i)] is
+renameFilePath pattern (i:is) = getNames $ ren [(i, renamer . fromString $ i)] is
                                   where
                                       renamer = getRenamer pattern -- parse pattern and get renamer function
                                       ren res    []     = res
                                       ren (r:rs) (n:ns) = ren ( (n, renamer nrc) : r : rs) ns -- renames file name, with ren context from old rename to preserve counters
-                                          where rc  = toRenContext n
+                                          where rc  = fromString n
                                                 co  = counter . snd $ r
                                                 nrc = rc { counter = co }
                                       getNames = map (\(rn, rrc) -> (toRenameResult rn (directory rrc `combine` result rrc)))
