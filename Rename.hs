@@ -139,8 +139,8 @@ fromFile f = return $ RenContext d f n e Nothing ""
 
 -- Creates RenContext from a string. Should be used for testing.
 fromString :: String -> RenContext
-fromString f = RenContext d f n e Nothing ""
-                    where (d, f, n, e) = splitFilePath f
+fromString f = RenContext d fn n e Nothing ""
+                    where (d, fn, n, e) = splitFilePath f
 
 modifyResult :: RenContext -> String -> RenContext
 modifyResult rc val = rc { result = val }
@@ -187,22 +187,16 @@ literalBuilder val c =  modifyResult c (result c ++ val)
 counterBuilder :: String -> Int -> Renamer
 counterBuilder format = if all isDigit format then intCounterBuilder format else stringCounterBuilder format
 
+
 stringCounterBuilder :: String -> Int -> Renamer
-stringCounterBuilder format diff c = modifyResultAndCount c (result c ++ applyFormat format newCount) newCount
-                                       where newCount = case counter c of
-                                                           Nothing -> Just format
-                                                           Just a  -> Just (foldl (\a f -> f a) a $ replicate diff nextLetterNum)
-                                             applyFormat f v = applyCase (getCase f) (fromJust v)
+stringCounterBuilder format diff c = modifyResultAndCount c (result c ++ applyCase (getCase format) newCount) (Just newCount)
+                                       where newCount = maybe format (\a -> foldl (\a f -> f a) a $ replicate diff nextLetterNum) (counter c)
 
 intCounterBuilder :: String -> Int -> Renamer
-intCounterBuilder format diff c =  modifyResultAndCount c (result c ++ applyFormat format newCount) newCount
-                                     where countVal = case counter c of
-                                                         Nothing -> read format :: Int
-                                                         Just a  -> read a + diff
-                                           newCount = Just (show countVal)
-                                           applyFormat f v = replicate time '0' ++ sv
-                                                where sv   = fromJust v :: String
-                                                      time = length format - length sv 
+intCounterBuilder format diff c =  modifyResultAndCount c (result c ++ applyFormat format newCount) (Just newCount)
+                                     where newCount = show $ maybe (read format :: Int) (\a -> read a + diff) (counter c)
+                                           applyFormat f v = replicate time '0' ++ v
+                                                where time = length format - length v 
 
 stringFieldBuilder :: (RenContext -> String) -> Case -> Renamer
 stringFieldBuilder accessor casing c = modifyResult c (result c ++ applyCase casing (accessor c))
