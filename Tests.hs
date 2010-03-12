@@ -50,12 +50,11 @@ instance Arbitrary TestData where
 toUpperFirst [] = []
 toUpperFirst (n:ns) = toUpper n : map toLower ns
 
-createNewNames pattern ns = reverse . map newName $ renamed
-                            where names    = map fileName ns
-                                  renamed  = renameFilePath pattern names
+createNewNames pattern ns = map newName renamed
+                            where names   = map (fromString . fileName) ns
+                                  renamed = renameFilePath pattern names
 
-prop_renamesize xs = length renamed == length xs
-                     where renamed = renameFilePath "[N]" xs
+prop_renamesize ns = length ns == length (createNewNames "[N]" ns)
 
 prop_fileNamePat ns             = map baseName ns == createNewNames "[N]" ns
 prop_fileNameToUpperPat ns      = map (map toUpper . baseName)  ns == createNewNames "[NN]" ns

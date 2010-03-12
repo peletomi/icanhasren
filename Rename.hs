@@ -35,7 +35,8 @@ module Rename (
     rename,
     loadFile,
     writeLine,
-    writeInfo
+    writeInfo,
+    fromString
 )
 where
 
@@ -43,6 +44,8 @@ import System.FilePath
 
 import System.IO
 import System.FilePath
+import System.Time
+import System.Posix.Types
 import qualified System.Directory as D
 import qualified System.Posix.Files as PF
 
@@ -59,6 +62,7 @@ import Data.Function (on)
 import Control.Monad (forM)
 
 import qualified Data.Set as S
+import qualified Data.Map as M
 
 version = "0.1"
 
@@ -69,13 +73,36 @@ data CheckError = NoError | NewNameCollision | OldNameCollision | Existing
                   deriving (Eq, Show)  
 
 data RenContext = RenContext {
-    directory :: FilePath
-,   fileName  :: FilePath
-,   name      :: String
-,   ext       :: String
-,   counter   :: Maybe String
+    fileData  :: FileData
+,   counters  :: M.Map String CounterData
 ,   result    :: String
 } deriving (Show)
+
+data FileData = FileData {
+    isDirectory_  :: Bool -- FIXME
+,   fullName    :: FilePath
+,   directory   :: FilePath
+,   fileName    :: FilePath
+,   name        :: String
+,   ext         :: String
+,   createDate  :: ClockTime
+,   modDate     :: ClockTime
+,   accessDate  :: ClockTime
+} deriving (Show)
+
+data CounterData = CounterData {
+    counter     :: String
+,   incremented :: Bool
+,   format      :: String
+}
+
+instance Show CounterData where
+    show cd = if all isDigit f
+                 then replicate t '0' ++ c
+                 else applyCase (getCase f) c
+                 where c = counter cd
+                       f = format cd
+                       t = length f - length c
 
 data RenameResult = RenameResult  {
     oldName   :: FilePath
@@ -108,23 +135,6 @@ type Pattern = String
 
 type RenBuilder = Pattern -> Renamer
 
-class Counter a where
-    init   :: String -> a
-    next   :: a -> a
-    format :: String -> a -> String
-
-instance Counter String where
-   init   = id
-   next   = nextLetterNum
-   format = applyCase . getCase
-                
-instance Counter Int where
-    init i     = read i :: Int
-    next n     = n + 1
-    format f n = replicate time '0' ++ sv
-                       where sv = show n :: String
-                             time = length f- length sv 
-
 -- Splits the FilePath into components: (directory, file name, name, extension).
 splitFilePath :: FilePath -> (String, String, String, String)
 splitFilePath f = (dir, fname, name, ext)
@@ -133,20 +143,35 @@ splitFilePath f = (dir, fname, name, ext)
                           ext = dropWhile (=='.') ext'
 
 -- Creates RenContext from a file, reading the properties of the file.
-fromFile :: FilePath -> IO RenContext
-fromFile f = return $ RenContext d f n e Nothing ""
-                    where (d, f, n, e) = splitFilePath n
+fromFile :: FilePath -> IO FileData
+fromFile f = return $ FileData False f d fn n e nt nt nt -- TODO
+                    where (d, fn, n, e) = splitFilePath f
+                          nt = TOD 0 0
 
 -- Creates RenContext from a string. Should be used for testing.
-fromString :: String -> RenContext
-fromString f = RenContext d fn n e Nothing ""
+fromString :: String -> FileData
+fromString f = FileData False f d fn n e nt nt nt
                     where (d, fn, n, e) = splitFilePath f
+                          nt = TOD 0 0
+
+initRenContext :: FileData -> RenContext
+initRenContext fd = RenContext fd M.empty ""
+
+-- Creates a new RenContext from a file and an old RenContext.
+-- The static information from the old (ie.: counters) will
+-- be transfered into the new one.
+nextRenContext :: FileData -> RenContext -> RenContext
+nextRenContext fd oc = RenContext fd resetCounter ""
+                            where resetCounter = M.map (\c -> c { incremented = False}) (counters oc)
 
 modifyResult :: RenContext -> String -> RenContext
 modifyResult rc val = rc { result = val }
 
-modifyResultAndCount :: RenContext -> String -> Maybe String -> RenContext
-modifyResultAndCount rc val count = rc { result = val, counter = count }
+modifyResultAndCount :: RenContext -> String -> String -> CounterData -> RenContext
+modifyResultAndCount rc val counterId counter = rc { result = val, counters = M.insert counterId counter (counters rc)}
+
+newCounter :: String -> CounterData
+newCounter format = CounterData format True format
 
 getCase :: String -> Case
 getCase (a:b:ls) | isUpper a && isUpper b = UpperCase
@@ -162,11 +187,12 @@ applyCase UpperCase  c  = map toUpper c
 applyCase LowerCase  c  = map toLower c
 
 getStringAccessor :: String -> (RenContext -> String)
-getStringAccessor [] = fileName
-getStringAccessor ls | all (=='n') ls' = name
-                     | all (=='f') ls' = fileName
-                     | all (=='e') ls' = ext
-                     | otherwise = fileName
+getStringAccessor [] = fileName . fileData
+getStringAccessor ls | all (=='d') ls' = directory . fileData
+                     | all (=='n') ls' = name . fileData
+                     | all (=='f') ls' = fileName . fileData
+                     | all (=='e') ls' = ext . fileData
+                     | otherwise = fileName . fileData
                      where ls' = map toLower ls
 
 nextLetter :: Char -> Char
@@ -181,30 +207,34 @@ nextLetterNum ls = if overflow then 'a':r else r
                             where l' = if o then nextLetter l else l
                                   o' = l == 'z' && l' == 'a'
 
+-- returns the n-th letter num
+nextLetterNum' :: Int -> String -> String
+nextLetterNum' n l | n < 1 = l
+                   | otherwise = foldl (\a f -> f a) l $ replicate n nextLetterNum
+
+----------------------------------------------------------------
+---------------- Renamer Builder Functions ---------------------
+----------------------------------------------------------------
+
 literalBuilder :: String -> Renamer
 literalBuilder val c =  modifyResult c (result c ++ val)
 
-counterBuilder :: String -> Int -> Renamer
-counterBuilder format = if all isDigit format then intCounterBuilder format else stringCounterBuilder format
-
-
-stringCounterBuilder :: String -> Int -> Renamer
-stringCounterBuilder format diff c = modifyResultAndCount c (result c ++ applyCase (getCase format) newCount) (Just newCount)
-                                       where newCount = maybe format (\a -> foldl (\a f -> f a) a $ replicate diff nextLetterNum) (counter c)
-
-intCounterBuilder :: String -> Int -> Renamer
-intCounterBuilder format diff c =  modifyResultAndCount c (result c ++ applyFormat format newCount) (Just newCount)
-                                     where newCount = show $ maybe (read format :: Int) (\a -> read a + diff) (counter c)
-                                           applyFormat f v = replicate time '0' ++ v
-                                                where time = length format - length v 
+counterBuilder :: String -> String -> Int -> Renamer
+counterBuilder id f diff c = modifyResultAndCount c (result c ++ show nc) id nc
+                                    where nc     = maybe (newCounter f) incr (M.lookup id (counters c))
+                                          incr c = if incremented c
+                                                      then c
+                                                      else if all isDigit (format c)
+                                                              then c { counter = show $ read (counter c) + diff, incremented = True }
+                                                              else c { counter = nextLetterNum' diff (counter c), incremented = True }
 
 stringFieldBuilder :: (RenContext -> String) -> Case -> Renamer
 stringFieldBuilder accessor casing c = modifyResult c (result c ++ applyCase casing (accessor c))
 
 nameBuilder, extBuilder, fileNameBuilder :: Case -> Renamer
-nameBuilder     = stringFieldBuilder name
-extBuilder      = stringFieldBuilder ext
-fileNameBuilder = stringFieldBuilder fileName
+nameBuilder     = stringFieldBuilder (name . fileData)
+extBuilder      = stringFieldBuilder (ext . fileData)
+fileNameBuilder = stringFieldBuilder (fileName . fileData)
 
 extractBuilder :: (RenContext -> String) -> Case -> Int -> Maybe Int -> Renamer
 extractBuilder accessor casing start end c = modifyResult c (result c ++ applyCase casing val)
@@ -225,7 +255,9 @@ substringFrom :: Int -> [a] -> [a]
 substringFrom _ [] = []
 substringFrom s ls = drop s ls
 
+----------------------------------------------------------
 ---------------- Pattern Processing ----------------------
+----------------------------------------------------------
 
 parsePattern :: GenParser Char st Renamer
 parsePattern = do
@@ -270,13 +302,14 @@ counterPar :: GenParser Char st Renamer
 counterPar = do  
                char '['
                nc <- (char 'C' <|> char 'c')
+               id <- option "0" (many1 digit)
                cd <- optionMaybe (try coDataPar <|> coDataFormatPar)
                char ']'
-               return (cbuilder cd)
+               return (cbuilder id cd)
 
-cbuilder :: Maybe (String, Int) -> Renamer
-cbuilder m = counterBuilder f d
-                where (f, d) = fromMaybe ("1", 1) m
+cbuilder :: String -> Maybe (String, Int) -> Renamer
+cbuilder id m = counterBuilder id f d
+                   where (f, d) = fromMaybe ("1", 1) m
 
 coDataFormatPar :: GenParser Char st (String, Int)
 coDataFormatPar = do
@@ -312,7 +345,9 @@ literalPar = do
                 v <- many1 (noneOf "[]")
                 return (literalBuilder v)
 
+------------------------------------------------
 ---------------- Renaming ----------------------
+------------------------------------------------
 
 collisions :: [RenameResult] -> [String]
 collisions ls = S.toList (toSet oldName `S.intersection` toSet newName)
@@ -322,22 +357,39 @@ getRenamer pattern = case parse parsePattern "name" pattern of
                         Right r -> r
                         Left  m -> error . show $  m
 
-renameFilePath :: String -> [String] -> [RenameResult]
-renameFilePath _       []     = []
-renameFilePath pattern (i:is) = getNames $ ren [(i, renamer . fromString $ i)] is
-                                  where
-                                      renamer = getRenamer pattern -- parse pattern and get renamer function
-                                      ren res    []     = res
-                                      ren (r:rs) (n:ns) = ren ( (n, renamer nrc) : r : rs) ns -- renames file name, with ren context from old rename to preserve counters
-                                          where rc  = fromString n
-                                                co  = counter . snd $ r
-                                                nrc = rc { counter = co }
-                                      getNames = map (\(rn, rrc) -> (toRenameResult rn (directory rrc `combine` result rrc)))
+renameFilePath :: String -> [FileData] -> [RenameResult]
+renameFilePath _       []       = []
+renameFilePath pattern d@(f:fs) = zipWith (\ofd -> toRenameResult (fullName ofd)) d newFN
+                                  where 
+                                        -- parse pattern and get renamer function
+                                        renamer = getRenamer pattern 
+
+                                        -- rename the first - to get an init context, then the rest
+                                        firstRC = renamer $ initRenContext f
+                                        newRCS  = renLoop renamer [firstRC] fs
+
+                                        -- combine the old and new names to a RenameResult
+                                        newFN = map (\c -> directory  (fileData c) `combine` result c) $ reverse newRCS
 
 rename :: String -> [String] -> IO [RenameResult]
-rename p files= checkResult (renameFilePath p files) >>= sortResults
+rename _       []    = return []
+rename pattern files = do
+                         fdata <- mapM fromFile files     
 
+                         -- get the rename results
+                         let rrs = renameFilePath pattern fdata
+                         
+                         -- check and sort to renaming order
+                         checkResult rrs >>= sortResults
+
+renLoop :: Renamer -> [RenContext] -> [FileData] -> [RenContext]
+renLoop _       res    []     = res
+renLoop renamer (r:rs) (n:ns) = let nrc = nextRenContext n r
+                                  in renLoop renamer (renamer nrc : r : rs) ns
+
+------------------------------------------------
 ---------------- Checking ----------------------
+------------------------------------------------
 
 type Checker = [RenameResult] -> RenameResult -> IO CheckError
 
