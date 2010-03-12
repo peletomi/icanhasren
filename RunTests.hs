@@ -31,6 +31,8 @@ main = defaultMain tests
 tests = [
         testGroup "Patterns" 
                 [ testProperty "length of renamed list"             prop_renamesize
+                , testProperty "literal"                            prop_literal
+                , testProperty "fulle file name"                    prop_fullFileName
                 , testProperty "file name"                          prop_fileNamePat
                 , testProperty "file name to upper"                 prop_fileNameToUpperPat
                 , testProperty "file name to lower"                 prop_fileNameToLowerPat
@@ -50,8 +52,11 @@ tests = [
                 , testProperty "extract extension"                  prop_extractExtExt
                 , testProperty "extract extension to upper"         prop_extractExtUp
                 , testProperty "extract extension first to upper"   prop_extractExtUpFi 
+                , testProperty "counter"                            prop_counter
+                , testProperty "two counters"                       prop_twoCounters
+                , testProperty "counter from five"                  prop_counterFromFive
+                , testProperty "counter with odd numbers"           prop_counterOdd
+                , testProperty "counter with characters"            prop_counterChar
+                , testProperty "counter with another counter"       prop_counterTwoDiff
                 ]
          ]
-
-
-
