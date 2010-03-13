@@ -1,0 +1,87 @@
+#! /bin/bash
+
+TEMPLATE=XXXXXXXXXXXX
+TEST_DIR="test/shell"
+CURR=$PWD
+REN=$PWD/bin/renamer
+NOK=0
+
+GREEN="\e[32;1m"
+RED="\e[31;1m"
+NO_COLOR="\e[0m"
+
+
+function createTemp {
+    cd $CURR
+    DIR=$(mktemp -d --tmpdir=$TEST_DIR "$1.$TEMPLATE")
+    cd $DIR
+}
+
+function existsFile {
+    RC=0
+    for F in $1;
+    do
+        if [[ ! -f $F ]]; then
+           RC=1
+       fi 
+    done
+    return $RC
+}
+
+function existsWithContent {
+    grep $2 $1 2>&- > /dev/null
+    return $?
+}
+
+function check {
+    if [[ $1 != 0 ]]; then
+        echo -e "  $2: ${RED}FAILED${NO_COLOR}"
+        NOK=1
+    else
+        echo -e "  $2: ${GREEN}OK${NO_COLOR}"
+    fi
+}
+
+function test01 {
+    createTemp "test01"
+
+    echo a > a
+    echo b > b
+    echo c > c
+
+    $REN "[C]" a b c
+
+    existsFile "1 2 3"     &&
+    existsWithContent 1 a  &&
+    existsWithContent 2 b  &&
+    existsWithContent 3 c
+    
+    check $? "counter"
+}
+
+function test02 {
+    createTemp "test02"
+
+    echo 1 > 1
+    echo 2 > 2
+    echo 3 > 3
+
+    $REN "[C:2]" 1 2 3
+
+    existsFile "2 3 4"     &&
+    existsWithContent 2 1  &&
+    existsWithContent 3 2  &&
+    existsWithContent 4 3
+    
+    check $? "counter with overlapping names"
+}
+
+if [[ ! -f $REN ]]; then
+    echo -e "${RED}renamer binary not found${NO_COLOR}"
+    exit 1
+fi
+
+test01
+test02
+
+exit $NOK

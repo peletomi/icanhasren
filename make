@@ -1,5 +1,5 @@
 #! /bin/bash
-DIRECTORIES="bin build test test/build test/bin test/html"
+DIRECTORIES="bin build test test/build test/bin test/html test/shell"
 DO_CLEAN=0
 DO_MAKE=1
 DO_TESTS=0
@@ -38,6 +38,10 @@ if [[ $DO_TESTS = 1 ]]; then
     CURR=$PWD
     cd ./test/build
     ../bin/RunTests
+    RC=$?
     hpc markup RunTests --exclude=Main --exclude=QC --exclude=Tests --srcdir $CURR  --hpcdir=test/build --destdir="../html" 
     cd $CURR
+    if [[ $RC == 0 && $DO_MAKE == 1 ]]; then
+        ./testshell
+    fi
 fi
