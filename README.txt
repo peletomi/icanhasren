@@ -1,7 +1,7 @@
 This tool renames files and directories based on patterns. 
 
 Patterns
---------
+========
 
 There are two kinds of patterns: literal, variable. The latter ones are
 surrounded by a pair of brackets i.e.: []. The patterns which handle string
@@ -33,56 +33,102 @@ Selector characters are:
 
 The following patterns are available:
 
-  * [F] - string - returns the whole file name
+Full file name
+--------------
 
-  * [N] - string - returns the file name without the extension
+  Pattern: [F], [FF], [ff], [Ff]
 
-  * [E] - string - returns the extension
+  Description: returns the whole file name
 
-  * [C] - int / string - returns a counter value. By default counting from 1
-          format is not changed
+File name
+---------
 
-  * [C:format] - int / string - the format defines multiple things: counter
-                 type (integer, string), start value, character case, padding.
+  Pattern: [N], [NN], [nn], [Nn]
 
-                 Examples: - [C:2] start from 2 do not change formatting
-                    
-                           - [C:001] start from one, pad the result with 0 to
-                                     a length of 3
+  Description: returns the file name without the extension
 
-                           - [C:a] use a character counter
+Extension
+---------
 
-                           - [C:AA] use a character counter, with upper case
-                                    characters
+  Pattern: [E], [EE], [ee], [Ee]
 
-  * [C:format,steps] - int / string - format is the same as before. The steps
-                                      describe the difference between two
-                                      counts
+  Description: returns the extension
 
-  * [X:start]   - string - returns the substring denoted by start. Start is a
-                           one based index. If start is negative, then the
-                           index is from the end of the string. If the start
-                           is past or before the string, then no or all
-                           characters will be returned.  The extractor pattern
-                           supports selector characters.
+Counters
+--------
 
-                  Examples: - [X:3] return the substring of the file name from
-                                    the third character
+  There are two types of counters: string, integer. Multiple different counters
+  (with different properties) can be specified in a pattern. It is possible to
+  use one counter several times in a pattern, it will be incremented only
+  once. The general format of the pattern is:
 
-                            - [X:-2] return the substring from the second
-                                     character from the end of the string
+    [Cid:format,step]
 
-                            - [Xxe:2] return the from the second character of
-                                      the extension, with the first letter
-                                      upper cased the others lower cased
+  Pattern: [C]
 
-  * [X:start,length]    - string - returns the substring denoted by start with
-                                   the given length. If the length is
-                                   negative, then the substring before start
-                                   with the given length will be returned.
+  Description: returns a counter value, counting from 1, with the default
+               format
+
+  Pattern: [C:format]
+
+  Description: the format influences multiple properties. First it chooses
+               between numerical, and character counters. If the format is all
+               digits it will be a numerical, otherwise it will be a character
+               counter. In both cases it sets the start value of the counter
+               as well.
+
+               In the case of a numerical counter the format sets the padding
+               length as well. For example: 0001, the counter will be padded
+               with nulls to a length of 4.
+
+               In the case of character counters the format sets the
+               character casing, as usual with string values: AA, aa, Aa.
+
+  Examples: * [C:2]     start from 2 do not change formatting
+
+            * [C:001]   start from one, pad the result with 0 to a length of 3
+
+            * [C:a]     use a character counter
+
+            * [C:AA]    use a character counter, with upper case characters
+
+            * [C:Bb]    use a character counter, start from B, first character
+                        is upper case others lower case
+
+  Pattern: [C:format,steps]
+  
+  Description: format is the same as before. The steps describe the difference
+               between two counts
+
+Extraction
+----------
+
+  Pattern: [X:start]
+  
+  Description: returns the substring denoted by start. Start is a one based
+               index. If start is negative, then the index is from the end of
+               the string. If the start is past or before the string, then no
+               or all characters will be returned.  The extractor pattern
+               supports selector characters.
+
+  Examples: * [X:3]   return the substring of the file name from 
+                      the third character
+
+            * [X:-2]  return the substring from the second character
+                      from the end of the string
+
+            * [Xxe:2] return the from the second character of
+                      the extension, with the first letter upper cased the
+                      others lower cased
+
+  Patter: [X:start,length]
+  
+  Description: returns the substring denoted by start with the given length.
+               If the length is negative, then the substring before start with
+               the given length will be returned.
 
 Collisions
-----------
+==========
 
 There are three types of collisions: existing files, new names colliding, and
 new names colliding with old names. In show mode these three types are
@@ -103,7 +149,7 @@ re-ordering the file renames, inserting temporary renames given there is a
 circular dependency between the renames.
 
 Options
--------
+=======
 
   -h       --help        
                Usage information.
