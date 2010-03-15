@@ -54,6 +54,9 @@ createNewNames pattern ns = map newName renamed
                             where names   = map (fromString . fileName) ns
                                   renamed = renameFilePath pattern names
 
+isUpperFirst []     = False
+isUpperFirst (c:cs) = isUpper c && all isLower cs
+
 prop_renamesize ns = length ns == length (createNewNames "[N]" ns)
 
 prop_literal ns = replicate (length ns) "abc" == createNewNames "abc" ns
@@ -81,21 +84,24 @@ prop_extractExtExt ns   = createNewNames "[E]"  ns == createNewNames "[Xe:1]" ns
 prop_extractExtUp ns    = createNewNames "[EE]" ns == createNewNames "[XXe:1]" ns
 prop_extractExtUpFi ns  = createNewNames "[Ee]" ns == createNewNames "[Xxe:1]" ns
 
-prop_counter ns         = map show [1..(length ns)] == createNewNames "[C]" ns
-prop_twoCounters ns     = map (\n -> n ++ "." ++ n) nums == createNewNames "[C].[C]" ns
-                            where nums = map show [1..(length ns)]
-prop_counterFromFive ns = map show [5..(length ns)+4] == createNewNames "[C:5]" ns
-prop_counterOdd ns      = map show oddNums == createNewNames "[C:1,2]" ns
-                            where oddNums = filter odd [1..(length ns * 2)]
-prop_counterChar ns     = take len result == take len newNames
-                            where chars = (map (:[]) ['a'..'z'])
-                                  morechars = chars ++ zipWith (++) (repeat "a") chars ++ zipWith (++) (repeat "b") chars
-                                  result = map (\n -> n ++ "." ++ n) morechars 
-                                  newNames = createNewNames "[C:a].[C]" ns
-                                  len = (length morechars) `min` length newNames
-prop_counterTwoDiff ns  = map (\(a,b) -> a ++ "." ++ b) zipped == createNewNames "[C1].[C2:1,2]" ns
-                            where nums = map show [1..(length ns)]
-                                  oddNums = map show (filter odd [1..(length ns * 2)])
-                                  zipped = zip nums oddNums
+prop_counter ns             = map show [1..(length ns)] == createNewNames "[C]" ns
+prop_twoCounters ns         = map (\n -> n ++ "." ++ n) nums == createNewNames "[C].[C]" ns
+                                where nums = map show [1..(length ns)]
+prop_counterFromFive ns     = map show [5..(length ns)+4] == createNewNames "[C:5]" ns
+prop_counterOdd ns          = map show oddNums == createNewNames "[C:1,2]" ns
+                                where oddNums = filter odd [1..(length ns * 2)]
+prop_counterChar ns         = take len result == take len newNames
+                                where chars = (map (:[]) ['a'..'z'])
+                                      morechars = chars ++ zipWith (++) (repeat "a") chars ++ zipWith (++) (repeat "b") chars
+                                      result = map (\n -> n ++ "." ++ n) morechars 
+                                      newNames = createNewNames "[C:a].[C]" ns
+                                      len = (length morechars) `min` length newNames
+prop_counterTwoDiff ns      = map (\(a,b) -> a ++ "." ++ b) zipped == createNewNames "[C1].[C2:1,2]" ns
+                                where nums = map show [1..(length ns)]
+                                      oddNums = map show (filter odd [1..(length ns * 2)])
+                                      zipped = zip nums oddNums
+prop_counterUpper ns        = all (all isUpper) (createNewNames "[CC:a]" ns)
+prop_counterLower ns        = all (all isLower) (createNewNames "[cc:a]" ns)
+prop_counterUpperFirst ns   = all isUpperFirst (createNewNames "[Cc:aa]" ns)
 
 -- substring substringFrom

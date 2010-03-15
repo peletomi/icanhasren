@@ -81,8 +81,8 @@ Counters
                length as well. For example: 0001, the counter will be padded
                with nulls to a length of 4.
 
-               In the case of character counters the format sets the
-               character casing, as usual with string values: AA, aa, Aa.
+               In the case of character counters it is possible to set the
+               character case as usual, with varying the casing of the C.
 
   Examples: * [C:2]     start from 2 do not change formatting
 
@@ -90,9 +90,9 @@ Counters
 
             * [C:a]     use a character counter
 
-            * [C:AA]    use a character counter, with upper case characters
+            * [CC:A]    use a character counter, with upper case characters
 
-            * [C:Bb]    use a character counter, start from B, first character
+            * [Cc:bb]   use a character counter, start from bb, first character
                         is upper case others lower case
 
   Pattern: [C:format,steps]

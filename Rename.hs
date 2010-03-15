@@ -94,15 +94,17 @@ data CounterData = CounterData {
     counter     :: String
 ,   incremented :: Bool
 ,   format      :: String
+,   counterCase :: Case
 }
 
 instance Show CounterData where
     show cd = if all isDigit f
                  then replicate t '0' ++ c
-                 else applyCase (getCase f) c
-                 where c = counter cd
-                       f = format cd
-                       t = length f - length c
+                 else applyCase ca c
+                 where c  = counter cd
+                       f  = format cd
+                       ca = counterCase cd
+                       t  = length f - length c
 
 data RenameResult = RenameResult  {
     oldName   :: FilePath
@@ -170,8 +172,8 @@ modifyResult rc val = rc { result = val }
 modifyResultAndCount :: RenContext -> String -> String -> CounterData -> RenContext
 modifyResultAndCount rc val counterId counter = rc { result = val, counters = M.insert counterId counter (counters rc)}
 
-newCounter :: String -> CounterData
-newCounter format = CounterData format True format
+newCounter :: String -> Case -> CounterData
+newCounter format casing = CounterData format True format casing
 
 getCase :: String -> Case
 getCase (a:b:ls) | isUpper a && isUpper b = UpperCase
@@ -219,9 +221,9 @@ nextLetterNum' n l | n < 1 = l
 literalBuilder :: String -> Renamer
 literalBuilder val c =  modifyResult c (result c ++ val)
 
-counterBuilder :: String -> String -> Int -> Renamer
-counterBuilder id f diff c = modifyResultAndCount c (result c ++ show nc) id nc
-                                    where nc     = maybe (newCounter f) incr (M.lookup id (counters c))
+counterBuilder :: String -> String -> Case -> Int -> Renamer
+counterBuilder id f ca diff c = modifyResultAndCount c (result c ++ show nc) id nc
+                                    where nc     = maybe (newCounter f ca) incr (M.lookup id (counters c))
                                           incr c = if incremented c
                                                       then c
                                                       else if all isDigit (format c)
@@ -301,15 +303,15 @@ extractLengthPar = char ',' >> intPar
 counterPar :: GenParser Char st Renamer
 counterPar = do  
                char '['
-               nc <- (char 'C' <|> char 'c')
+               nc <- many (char 'C' <|> char 'c')
                id <- option "0" (many1 digit)
                cd <- optionMaybe (try coDataPar <|> coDataFormatPar)
                char ']'
-               return (cbuilder id cd)
+               return (cbuilder id (getCase nc) cd)
 
-cbuilder :: String -> Maybe (String, Int) -> Renamer
-cbuilder id m = counterBuilder id f d
-                   where (f, d) = fromMaybe ("1", 1) m
+cbuilder :: String -> Case -> Maybe (String, Int) -> Renamer
+cbuilder id ca m = counterBuilder id f ca d
+                      where (f, d) = fromMaybe ("1", 1) m
 
 coDataFormatPar :: GenParser Char st (String, Int)
 coDataFormatPar = do

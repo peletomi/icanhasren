@@ -58,5 +58,8 @@ tests = [
                 , testProperty "counter with odd numbers"           prop_counterOdd
                 , testProperty "counter with characters"            prop_counterChar
                 , testProperty "counter with another counter"       prop_counterTwoDiff
+                , testProperty "counter with upper case chars"      prop_counterUpper
+                , testProperty "counter with upper case first"      prop_counterUpperFirst
+                , testProperty "counter with lower case chars"      prop_counterLower
                 ]
          ]
