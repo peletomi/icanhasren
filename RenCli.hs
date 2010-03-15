@@ -24,6 +24,7 @@ import IO
 import System
 import System.Environment
 import qualified System.Directory as D
+import qualified System.Posix.Files as PF
 import System.FilePath
 import System.Console.GetOpt
 
@@ -82,6 +83,11 @@ showShortUsage = do
                    hPutStrLn stderr ("Try '" ++ prg ++ " --help' for more information.")
                    exitFailure
 
+isDirectory :: FilePath -> IO Bool
+isDirectory name = do
+                status <- PF.getFileStatus name
+                return (PF.isDirectory status)
+
 main :: IO ()
 main = do
          args <- getArgs
@@ -126,6 +132,12 @@ renameFile opts renResult = do
 
                               when ((df || dd) && not (optForce opts))
                                    (hPutStrLn stderr ("file [" ++ nn ++ "] already exists") >> exitFailure)
+
+                              dof <- D.doesFileExist on
+                              dod <- D.doesDirectoryExist on
+
+                              when (not (dof || dod))
+                                   (hPutStrLn stderr ("file [" ++ on ++ "] does not exists") >> exitFailure)
                                  
                               isDir <- isDirectory on
                               if isDir 

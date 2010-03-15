@@ -138,6 +138,18 @@ Extraction
                If the length is negative, then the substring before start with
                the given length will be returned.
 
+Modification time
+-----------------
+
+  Pattern: [D]
+
+  Description: returns the modification date of the file. Format is: YYYYmmdd
+
+  Pattern: [D:format]
+
+  Description: returns the modification time with the given format. 
+               The formatting characters are the same as for strftime().
+
 Collisions
 ==========
 

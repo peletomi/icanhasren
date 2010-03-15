@@ -27,7 +27,6 @@ module Rename (
     isAnyFatalError,
     isAnyForceError,
     RenameResult,
-    isDirectory,
     oldName,
     newName,
     collisions,
@@ -45,6 +44,7 @@ import System.FilePath
 import System.IO
 import System.FilePath
 import System.Time
+import System.Locale
 import System.Posix.Types
 import qualified System.Directory as D
 import qualified System.Posix.Files as PF
@@ -59,7 +59,7 @@ import Data.Maybe (fromMaybe, fromJust)
 import Data.List (partition, isPrefixOf)
 import Data.Function (on)
 
-import Control.Monad (forM)
+import Control.Monad (when, forM)
 
 import qualified Data.Set as S
 import qualified Data.Map as M
@@ -79,15 +79,12 @@ data RenContext = RenContext {
 } deriving (Show)
 
 data FileData = FileData {
-    isDirectory_  :: Bool -- FIXME
-,   fullName    :: FilePath
+    fullName    :: FilePath
 ,   directory   :: FilePath
 ,   fileName    :: FilePath
 ,   name        :: String
 ,   ext         :: String
-,   createDate  :: ClockTime
-,   modDate     :: ClockTime
-,   accessDate  :: ClockTime
+,   modTime     :: CalendarTime
 } deriving (Show)
 
 data CounterData = CounterData {
@@ -107,9 +104,9 @@ instance Show CounterData where
                        t  = length f - length c
 
 data RenameResult = RenameResult  {
-    oldName   :: FilePath
-,   newName   :: FilePath
-,   errors    :: [CheckError]
+    oldName     :: FilePath
+,   newName     :: FilePath
+,   errors      :: [CheckError]
 }
 
 instance Show RenameResult where
@@ -146,15 +143,25 @@ splitFilePath f = (dir, fname, name, ext)
 
 -- Creates RenContext from a file, reading the properties of the file.
 fromFile :: FilePath -> IO FileData
-fromFile f = return $ FileData False f d fn n e nt nt nt -- TODO
-                    where (d, fn, n, e) = splitFilePath f
-                          nt = TOD 0 0
+fromFile f = do
+               let (d, fn, n, e) = splitFilePath f
+
+               df <- D.doesFileExist f
+               dd <- D.doesDirectoryExist f
+
+               when (not (df || dd))
+                    (error ("file [" ++ f ++ "] does not exists"))
+
+               time <- D.getModificationTime f
+               calTime <- toCalendarTime time
+
+               return $ FileData f d fn n e calTime
 
 -- Creates RenContext from a string. Should be used for testing.
 fromString :: String -> FileData
-fromString f = FileData False f d fn n e nt nt nt
+fromString f = FileData f d fn n e nt
                     where (d, fn, n, e) = splitFilePath f
-                          nt = TOD 0 0
+                          nt = toUTCTime $ TOD 1268661283 0
 
 initRenContext :: FileData -> RenContext
 initRenContext fd = RenContext fd M.empty ""
@@ -249,6 +256,10 @@ extractBuilder accessor casing start end c = modifyResult c (result c ++ applyCa
                                                                                  else if start < 0 then (l+start+1+end,l+start+1) else (start+end,start)
                                                     val = substring s e v
 
+dateBuilder :: String -> Renamer
+dateBuilder format c = modifyResult c (result c ++ time)
+                        where time = formatCalendarTime defaultTimeLocale format (modTime . fileData $ c)
+
 substring :: Int -> Int -> [a] -> [a]
 substring _ _ [] = []
 substring s e ls = drop s . take e $ ls
@@ -272,6 +283,7 @@ usedPat = try namePar     <|>
           try fileNamePar <|>
           try counterPar  <|>
           try extractPar  <|>
+          try datePar     <|>
           try literalPar  <?>
           "unknown pattern"
 
@@ -285,6 +297,20 @@ intPar = do
            n <- option ' ' (char '-')
            s <- many1 digit
            return (read (n:s))
+
+datePar :: GenParser Char st Renamer
+datePar = do
+            char '['
+            nc <- (char 'D' <|> char 'd')
+            f  <- option "%Y%m%d" dateFormatPar
+            char ']'
+            return (dateBuilder f)
+
+dateFormatPar :: GenParser Char st String
+dateFormatPar = do
+                  char ':'
+                  f <- many1 anyChar
+                  return f
 
 extractPar :: GenParser Char st Renamer
 extractPar = do
@@ -490,12 +516,6 @@ isOk r ok = noOldCollision || inOk
 toRenameResult :: FilePath -> FilePath -> RenameResult
 toRenameResult on nn = RenameResult { oldName = on, newName = nn, errors  = [] }
   
--- FIXME throws an exception if file does not exist
-isDirectory :: FilePath -> IO Bool
-isDirectory name = do
-                status <- PF.getFileStatus name
-                return (PF.isDirectory status)
-
 ---------------- File handling ----------------------
 
 loadFile :: FilePath -> Bool -> IO [RenameResult]
