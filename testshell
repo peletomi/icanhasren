@@ -17,7 +17,7 @@ function createTemp {
     cd $DIR
 }
 
-function existsFile {
+function assertExistsFile {
     RC=0
     for F in $1;
     do
@@ -28,9 +28,26 @@ function existsFile {
     return $RC
 }
 
-function existsWithContent {
+function assertExistsWithContent {
     grep $2 $1 2>&- > /dev/null
     return $?
+}
+
+function assertNumOfFiles {
+    NUM=$(ls | wc -l)
+    if [[ $NUM != $1 ]]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+function assertExitWithError {
+    if [[ $1 == 0 ]]; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 function check {
@@ -51,10 +68,11 @@ function test01 {
 
     $REN "[C]" a b c
 
-    existsFile "1 2 3"     &&
-    existsWithContent 1 a  &&
-    existsWithContent 2 b  &&
-    existsWithContent 3 c
+    assertNumOfFiles 3           &&
+    assertExistsFile "1 2 3"     &&
+    assertExistsWithContent 1 a  &&
+    assertExistsWithContent 2 b  &&
+    assertExistsWithContent 3 c
     
     check $? "counter"
 }
@@ -68,12 +86,128 @@ function test02 {
 
     $REN "[C:2]" 1 2 3
 
-    existsFile "2 3 4"     &&
-    existsWithContent 2 1  &&
-    existsWithContent 3 2  &&
-    existsWithContent 4 3
+    assertNumOfFiles 3           &&
+    assertExistsFile "2 3 4"     &&
+    assertExistsWithContent 2 1  &&
+    assertExistsWithContent 3 2  &&
+    assertExistsWithContent 4 3
     
     check $? "counter with overlapping names"
+}
+
+function test03 {
+    createTemp "test03"
+
+    echo 1 > 1
+    echo 2 > 2
+    echo 3 > 3
+    echo 4 > 4
+
+    $REN "[C:2]" 1 2 3 2>&-
+
+    assertExitWithError          &&
+    assertNumOfFiles 3           &&
+    assertExistsFile "1 2 3"     &&
+
+    check $? "no overwrite without force"
+}
+
+function test04 {
+    createTemp "test04"
+
+    echo 1 > 1
+    echo 2 > 2
+    echo 3 > 3
+    echo 4 > 4
+
+    $REN -f "[C:2]" 1 2 3
+
+    assertNumOfFiles 3           &&
+    assertExistsFile "2 3 4"     &&
+    assertExistsWithContent 2 1  &&
+    assertExistsWithContent 3 2  &&
+    assertExistsWithContent 4 3
+
+    check $? "overwrite with force"
+}
+
+function test05 {
+    createTemp "test05"
+
+    echo 1 > 1
+    echo 2 > 2
+    echo 3 > 3
+
+    $REN "a" 1 2 3 2>&-
+
+    assertExitWithError          &&
+    assertNumOfFiles 3           &&
+    assertExistsFile "1 2 3"     &&
+
+    check $? "overlapping new names not allowed"
+}
+
+function test06 {
+    createTemp "test06"
+
+    echo 1 > 1
+    echo 2 > 2
+    echo 3 > 3
+
+    $REN "a" -f 1 2 3 2>&-
+
+    assertExitWithError          &&
+    assertNumOfFiles 3           &&
+    assertExistsFile "1 2 3"     &&
+
+    check $? "overlapping new names not allowed - even with force"
+}
+
+function test07 {
+    createTemp "test07"
+
+    echo a > a
+    echo b > b
+    echo c > c
+
+    $REN -l log.txt "[C]" a b c
+
+    assertNumOfFiles 4                   &&
+    assertExistsFile "log.txt 1 2 3"
+
+    check $? "creating log"
+
+    $REN -u log.txt
+
+    assertNumOfFiles 4                   &&
+    assertExistsFile "log.txt a b c"     &&
+    assertExistsWithContent a a          &&
+    assertExistsWithContent b b          &&
+    assertExistsWithContent c c
+
+    check $? "undoing from log"
+}
+
+function test08 {
+    createTemp "test08"
+
+    echo a > a
+    echo b > b
+    echo c > c
+
+    echo "a:1" >> undo.txt
+    echo "b:2" >> undo.txt
+    echo "c:3" >> undo.txt
+
+    $REN -i undo.txt
+
+    assertNumOfFiles 4                   &&
+    assertExistsFile "undo.txt 1 2 3"    &&
+    assertExistsWithContent 1 a          &&
+    assertExistsWithContent 2 b          &&
+    assertExistsWithContent 3 c
+
+    check $? "rename from file"
 }
 
 if [[ ! -f $REN ]]; then
@@ -83,5 +217,11 @@ fi
 
 test01
 test02
+test03
+test04
+test05
+test06
+test07
+test08
 
 exit $NOK
