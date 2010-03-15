@@ -100,6 +100,17 @@ Counters
   Description: format is the same as before. The steps describe the difference
                between two counts
 
+  Pattern: [Cid]
+
+  Description: id is a numerical value, which gives a name to the counter
+               allowing multiple counters to co-exist. Only the first
+               occurence of the counter has to be configured.
+
+  Examples: * [C1:001][C2:a][C1]   the first counter is a numerical one,
+                                   with a padded format. The second is a
+                                   character counter. The first counter is
+                                   used again, here only the id is given.
+
 Extraction
 ----------
 
