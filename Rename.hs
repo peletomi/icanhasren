@@ -67,10 +67,10 @@ import qualified Data.Map as M
 version = "0.1"
 
 data Case = NoChange | LowerCase | UpperCase | FirstUpper
-            deriving (Eq, Show, Read, Enum)  
+            deriving (Eq, Show, Read, Enum)
 
 data CheckError = NoError | NewNameCollision | OldNameCollision | Existing
-                  deriving (Eq, Show)  
+                  deriving (Eq, Show)
 
 data RenContext = RenContext {
     fileData  :: FileData
@@ -321,13 +321,13 @@ extractPar = do
                s  <- intPar
                l  <- optionMaybe extractLengthPar
                char ']'
-               return (extractBuilder (getStringAccessor ac) (getCase nc) s l) 
+               return (extractBuilder (getStringAccessor ac) (getCase nc) s l)
 
 extractLengthPar :: GenParser Char st Int
 extractLengthPar = char ',' >> intPar
 
 counterPar :: GenParser Char st Renamer
-counterPar = do  
+counterPar = do
                char '['
                nc <- many (char 'C' <|> char 'c')
                id <- option "0" (many1 digit)
@@ -362,7 +362,7 @@ extPar      = simpleParBuilder 'E' extBuilder
 fileNamePar = simpleParBuilder 'F' fileNameBuilder
 
 simpleParBuilder :: Char -> (Case -> Renamer) -> GenParser Char st Renamer
-simpleParBuilder c builder = do  
+simpleParBuilder c builder = do
                                char '['
                                nc <- many1 (char (toUpper c) <|> char (toLower c))
                                char ']'
@@ -388,9 +388,9 @@ getRenamer pattern = case parse parsePattern "name" pattern of
 renameFilePath :: String -> [FileData] -> [RenameResult]
 renameFilePath _       []       = []
 renameFilePath pattern d@(f:fs) = zipWith (\ofd -> toRenameResult (fullName ofd)) d newFN
-                                  where 
+                                  where
                                         -- parse pattern and get renamer function
-                                        renamer = getRenamer pattern 
+                                        renamer = getRenamer pattern
 
                                         -- rename the first - to get an init context, then the rest
                                         firstRC = renamer $ initRenContext f
@@ -402,11 +402,11 @@ renameFilePath pattern d@(f:fs) = zipWith (\ofd -> toRenameResult (fullName ofd)
 rename :: String -> [String] -> IO [RenameResult]
 rename _       []    = return []
 rename pattern files = do
-                         fdata <- mapM fromFile files     
+                         fdata <- mapM fromFile files
 
                          -- get the rename results
                          let rrs = renameFilePath pattern fdata
-                         
+
                          -- check and sort to renaming order
                          checkResult rrs >>= sortResults
 
@@ -465,7 +465,7 @@ isAnyForceError rr = foldr step False rr
                         where step r acc = acc || any (==Existing) (errors r)
 
 ---------------- Sort Results ----------------------
-  
+
 {-
   The names will be sorted to the ok list in iterations.
   First all names, which do not have old name collisions
@@ -494,7 +494,7 @@ soRe nok ok | null toOk && (not . null $ toNok) = do
 
 breakCycle :: [RenameResult] -> IO [RenameResult]
 breakCycle []     = return []
-breakCycle (r:rs) = do 
+breakCycle (r:rs) = do
                        nn <- createTempName (newName r)
                        let or  = toRenameResult (oldName r) nn
                        let nr  = toRenameResult nn (newName r)
@@ -515,7 +515,7 @@ isOk r ok = noOldCollision || inOk
 
 toRenameResult :: FilePath -> FilePath -> RenameResult
 toRenameResult on nn = RenameResult { oldName = on, newName = nn, errors  = [] }
-  
+
 ---------------- File handling ----------------------
 
 loadFile :: FilePath -> Bool -> IO [RenameResult]
@@ -525,7 +525,7 @@ loadFile file isUndo = do
                          result <- resultsFromLines hIn convFunc []
                          hClose hIn
                          return result
-                              
+
 resultsFromLines :: Handle -> (FilePath -> FilePath -> RenameResult) -> [RenameResult] -> IO [RenameResult]
 resultsFromLines hIn convFunc r = do
                                     eof <- hIsEOF hIn

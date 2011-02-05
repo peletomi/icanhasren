@@ -1,4 +1,4 @@
-This tool renames files and directories based on patterns. 
+This tool renames files and directories based on patterns.
 
 Patterns
 ========
@@ -96,7 +96,7 @@ Counters
                         is upper case others lower case
 
   Pattern: [C:format,steps]
-  
+
   Description: format is the same as before. The steps describe the difference
                between two counts
 
@@ -115,14 +115,14 @@ Extraction
 ----------
 
   Pattern: [X:start]
-  
+
   Description: returns the substring denoted by start. Start is a one based
                index. If start is negative, then the index is from the end of
                the string. If the start is past or before the string, then no
                or all characters will be returned.  The extractor pattern
                supports selector characters.
 
-  Examples: * [X:3]   return the substring of the file name from 
+  Examples: * [X:3]   return the substring of the file name from
                       the third character
 
             * [X:-2]  return the substring from the second character
@@ -133,7 +133,7 @@ Extraction
                       others lower cased
 
   Patter: [X:start,length]
-  
+
   Description: returns the substring denoted by start with the given length.
                If the length is negative, then the substring before start with
                the given length will be returned.
@@ -147,7 +147,7 @@ Modification time
 
   Pattern: [D:format]
 
-  Description: returns the modification time with the given format. 
+  Description: returns the modification time with the given format.
                The formatting characters are the same as for strftime().
 
 Collisions
@@ -174,7 +174,7 @@ circular dependency between the renames.
 Options
 =======
 
-  -h       --help        
+  -h       --help
                Usage information.
 
   -s       --show-only
@@ -184,7 +184,7 @@ Options
                Log rename actions to file. The format of the file is:
                [old name]:[new name]
 
-  -i FILE  --input=FILE  
+  -i FILE  --input=FILE
                Load renames from file. The file format should be the same as
                the log is writing.
 

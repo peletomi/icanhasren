@@ -72,7 +72,7 @@ options =
 
 showHelp :: Options -> IO Options
 showHelp _ = do
-    	       prg <- getProgName
+               prg <- getProgName
                hPutStrLn stderr (usageInfo prg options)
                exitWith ExitSuccess
 
@@ -106,7 +106,7 @@ main = do
                        else fmap Just $ openFile (optLog opts) WriteMode
 
          -- do the RenameAction and always close the log if one is open
-         finally (if optShowOnly opts 
+         finally (if optShowOnly opts
                      then applyToFiles (buildShowAction opts nonOpts hLog) renResult
                      else applyToFiles (buildRenameAction opts nonOpts hLog) renResult)
                  (case hLog of
@@ -122,7 +122,7 @@ buildRenameAction o no h = RenameActionContext o no h renameFile
 handleArgumments :: [String] -> IO [RenameResult]
 handleArgumments (p:f:fs) = rename p (f:fs)
 handleArgumments _        = error "Pattern and files not supplied!"
-                                   
+
 renameFile :: RenameAction
 renameFile opts renResult = do
                               let (on, nn) = (oldName renResult, newName renResult)
@@ -138,14 +138,14 @@ renameFile opts renResult = do
 
                               when (not (dof || dod))
                                    (hPutStrLn stderr ("file [" ++ on ++ "] does not exists") >> exitFailure)
-                                 
+
                               isDir <- isDirectory on
-                              if isDir 
+                              if isDir
                                 then D.renameDirectory on nn
                                 else D.renameFile on nn
 
 applyToFiles :: RenameActionContext -> [RenameResult] -> IO ()
-applyToFiles context renResult = do 
+applyToFiles context renResult = do
 
                                    let doRename = not . optShowOnly $ getopts context
 
