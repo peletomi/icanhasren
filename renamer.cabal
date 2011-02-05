@@ -12,7 +12,7 @@ Category: Utility
 Description: A tool for renaming files and directories based on patterns.
 
 Build-Type: Simple
-Build-Depends: base >= 2,
+Build-Depends: base >= 4,
                parsec >= 2,
                containers >= 0.2,
                test-framework >= 0.2,
@@ -22,7 +22,9 @@ Build-Depends: base >= 2,
                filepath >= 1.1,
                directory >= 1,
                haskell98,
-               HUnit >=1.2
+               HUnit >=1.2,
+               old-locale >= 1,
+               old-time >= 1
 
 Executable: renamer
 Main-Is: RenCli.hs
