@@ -5,9 +5,9 @@ DO_MAKE=1
 DO_TESTS=0
 
 case $1 in
-    "clean") DO_CLEAN=1 
+    "clean") DO_CLEAN=1
              DO_MAKE=0  ;;
-    "test" ) DO_TESTS=1 
+    "test" ) DO_TESTS=1
              DO_MAKE=0  ;;
     "all"  ) DO_CLEAN=1
              DO_TESTS=1 ;;
@@ -39,7 +39,7 @@ if [[ $DO_TESTS = 1 ]]; then
     cd ./test/build
     ../bin/RunTests
     RC=$?
-    hpc markup RunTests --exclude=Main --exclude=QC --exclude=Tests --srcdir $CURR  --hpcdir=test/build --destdir="../html" 
+    hpc markup RunTests --exclude=Main --exclude=QC --exclude=Tests --srcdir $CURR  --hpcdir=test/build --destdir="../html"
     cd $CURR
     if [[ $RC == 0 && $DO_MAKE == 1 ]]; then
         ./testshell
